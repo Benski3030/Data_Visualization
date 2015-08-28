@@ -1,4 +1,17 @@
 #Creates a calendar heatmap
+library(lattice)
+library(chron)
+library(xts)
+
+#Generate some random time series data
+
+x1 <- 100 + arima.sim(model = list(ar = 0.809), n = 1095)
+time.points <- seq.Date(as.Date("2012-01-01"), by = 1, length.out = 1095)
+data <- data.frame(x = cbind(x1), date = time.points)
+
+#commands to call as examples after the function has loaded- you can always source the file
+calendarHeat(data$date, data$x, varname="Arima Model Sheet")
+calendarHeat2(data$date, data$x, varname="Arima Model Sheet")
 
 calendarHeat <- function(dates, 
                          values, 
@@ -237,3 +250,25 @@ stock.data <- read.csv(quote, as.is=TRUE)
 # Plot as calendar heatmap
 calendarHeat(stock.data$Date, stock.data$Adj.Close, varname="MSFT Adjusted Close")
 }
+
+calendarHeat2<-calendarHeat
+
+#insert line to calulate day number
+bl<-as.list(body(calendarHeat2))
+body(calendarHeat2) <- as.call(c(
+  bl[1:14], 
+  quote(caldat$dom <- as.numeric(format(caldat$date.seq, "%d"))),
+  bl[-(1:14)]
+))
+
+#change call to level plot
+lp<-as.list(body(calendarHeat2)[[c(32,2,3)]])
+lp$dom <- quote(caldat$dom)
+lp$panel <- quote(function(x,y,subscripts,dom,...) {
+  str(list(...))
+  panel.levelplot(x,y,subscripts=subscripts,...)
+  panel.text(x[subscripts],y[subscripts],labels=dom[subscripts])
+})
+body(calendarHeat2)[[c(32,2,3)]]<-as.call(lp)
+
+
